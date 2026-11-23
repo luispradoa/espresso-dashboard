@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Espresso Dashboard</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#121212">
+<style>
+:root{color-scheme:dark;--bg:#121212;--card:#262626;--line:#3d3d3d;--bar:#8c8c8c;--fg:#f5f5f5;--mut:#a3a3a3;--ok:#22c022;--bad:#ff5a4d;--f:"Barlow Condensed","Roboto Condensed",sans-serif-condensed,"Arial Narrow",system-ui,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.2 var(--f);display:flex;flex-direction:column;min-height:100dvh;font-variant-numeric:tabular-nums}
+header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px}
+header img{height:44px;width:auto;display:block}
+.tools{display:flex;gap:8px}
+.brand{font-weight:700;font-size:22px;letter-spacing:.5px}
+main{flex:1;display:grid;place-items:center;padding:0 16px 8px}
+.stage{width:min(1120px,100%);display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--card);border-left:10px solid var(--bar);border-radius:4px;padding:10px 14px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center}
+.sh{display:flex;align-items:center;gap:10px;width:100%;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;font-size:18px}
+.sh i{flex:1;height:1px;background:var(--line)}
+button{font:inherit;font-weight:700;min-height:44px;padding:0 18px;border-radius:999px;border:0;background:var(--fg);color:#111;cursor:pointer}
+button.sec{background:transparent;color:var(--fg);border:1.5px solid var(--bar)}
+button:disabled{opacity:.35;cursor:default}
+:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
+input{font:inherit;font-weight:700;min-height:44px;border-radius:6px;border:1.5px solid var(--line);background:var(--bg);color:var(--fg);padding:0 8px;text-align:center;width:100%}
+.pill{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mut);white-space:nowrap}
+.pill.on{color:var(--ok)}
+.pill.err{color:var(--bad)}
+.lbl{color:var(--mut);font-size:15px}
+.t{font-weight:700;font-size:20px}
+.hero{font-size:clamp(56px,13vh,120px);font-weight:700;line-height:1}
+.hero small{font-size:.3em;color:var(--mut);margin-left:6px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);width:100%}
+.stats>div+div{border-left:1px solid var(--line)}
+.stats .v{font-size:30px;font-weight:700}
+canvas{width:100%;aspect-ratio:960/200;background:var(--bg);border-radius:4px}
+.row{display:flex;gap:10px;align-items:flex-end;justify-content:center}
+.fld{display:flex;flex-direction:column;gap:2px;align-items:center;width:92px}
+.temp{font-size:clamp(40px,8vh,56px);font-weight:700;line-height:1}
+.step{display:flex;align-items:center;gap:14px;justify-content:center}
+.step button{min-width:72px}
+#ban{margin:0 16px 8px;padding:10px;border-left:10px solid var(--fg);background:var(--card);border-radius:4px;text-align:center;font-weight:700}
+dialog{border:0;border-radius:6px;background:var(--card);color:var(--fg);padding:22px;width:min(460px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.65)}
+dialog h2{margin:0 0 8px;font-size:22px}
+.acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
+.sep{height:1px;background:var(--line);width:100%;margin:16px 0}
+footer{padding:0 16px 8px;text-align:center}
+#log{margin:0;max-height:2.6em;overflow:auto;font:12px monospace;color:var(--mut);white-space:pre-wrap}
+.cf{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cf label{display:flex;flex-direction:column;gap:2px;color:var(--mut);font-size:15px;text-align:left}
+.cf input{text-align:left}
+#cl{display:flex;flex-direction:column;gap:6px}
+#cl button{text-align:left;border-radius:6px;font-weight:600}
+dialog{max-height:92dvh;overflow:auto}
+#cofb{max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+</style>
+</head>
+<body>
+<header><span class="brand">Espresso Dashboard</span><button class="sec" id="cofb">Coffee: choose</button><div class="tools"><button class="sec" id="hb">History</button><button class="sec" id="tb">Token</button></div></header>
+<div id="ban" style="display:none"></div>
+<main><div class="stage">
+  <section class="panel" aria-label="Báscula">
+    <div class="sh"><span>scale</span><i></i><span id="sst" class="pill">disconnected</span><span id="bat" class="lbl"></span><button id="sc">Connect</button></div>
+    <div class="hero"><span id="w">--</span><small>g</small></div>
+    <div class="stats">
+      <div><div class="lbl">time</div><div class="v" id="tm">--</div></div>
+      <div><div class="lbl">flow (g/s)</div><div class="v" id="fl">--</div></div>
+      <div><div class="lbl">ratio</div><div class="v" id="rt">--</div></div>
+    </div>
+    <canvas id="cv" width="960" height="200"></canvas>
+    <div class="row">
+      <label class="fld lbl">Dose (g)<input id="dose" type="number" inputmode="decimal" step="0.1" min="0"></label>
+      <label class="fld lbl">Alert at (g)<input id="tgt" type="number" inputmode="decimal" step="0.5" min="0"></label>
+      <button class="sec" id="tare" disabled>Tare</button>
+      <button class="sec" id="rst">Reset</button>
+    </div>
+    <div class="lbl" id="shs">waiting</div>
+  </section>
+  <section class="panel" aria-label="Micra">
+    <div class="sh"><span>machine</span><i></i><span id="mst" class="pill">disconnected</span><button id="mc">Connect</button></div>
+    <div><div class="t">brew boiler</div>
+      <div class="step"><button class="sec" id="bm" disabled>− 0,5</button><div><div class="temp"><span id="bt">--</span>°C</div><div class="lbl">target <span id="bg">--</span>°C</div></div><button class="sec" id="bp" disabled>+ 0,5</button></div></div>
+    <div><div class="t">steam boiler</div>
+      <div class="step"><button class="sec" id="sm" disabled>− 1</button><div><div class="temp"><span id="st">--</span>°C</div><div class="lbl">target <span id="sg">--</span>°C</div></div><button class="sec" id="sp" disabled>+ 1</button></div></div>
+    <div class="row" style="width:100%"><button id="pw" disabled style="flex:1">—</button><button class="sec" id="se" disabled>Steam: --</button></div>
+  </section>
+</div></main>
+<footer><div id="scr" class="lbl"></div><pre id="log"></pre></footer>
+
+<dialog id="tdlg">
+  <h2>Bluetooth token</h2>
+  <p class="lbl">Your machine's Bluetooth token. It is stored only in this browser.</p>
+  <input id="tok" type="password" autocomplete="off" placeholder="Pega aquí el token" style="text-align:left">
+  <div class="acts"><button class="sec" id="tshow">Show</button><button class="sec" id="tcan">Cancel</button><button id="tsave">Save</button></div>
+</dialog>
+<dialog id="cdlg">
+  <h2>Coffees</h2>
+  <div id="cl" class="lbl"></div>
+  <div class="sep"></div>
+  <div class="cf">
+    <label>Name<input id="cn" placeholder="Etiopía Aricha"></label>
+    <label>Roaster<input id="cr"></label>
+    <label>Notes<input id="cno"></label>
+    <label>Grinder<input id="cg" list="mol"></label><datalist id="mol"></datalist>
+    <label>Grind setting<input id="cs"></label>
+    <label>Dose (g)<input id="cd" type="number" inputmode="decimal" step="0.1" min="0"></label>
+    <label>Bag (g)<input id="cb2" type="number" inputmode="decimal" min="0"></label>
+    <label>Left (g)<input id="cq" type="number" inputmode="decimal" min="0"></label>
+    <label>Received<input id="cf" type="date"></label>
+    <label>Target time (s)<input id="ct" type="number" inputmode="decimal" min="0"></label>
+    <label>Target ratio (1 : x)<input id="crt" type="number" inputmode="decimal" step="0.1" min="0"></label>
+    <label>Grinder step<input id="cst" type="number" inputmode="decimal" step="0.1" min="0" placeholder="auto"></label>
+  </div>
+  <div class="acts"><button id="capply" class="sec" style="display:none"></button><button class="sec" id="cnew">New</button><button class="sec" id="cdel">Delete</button><button id="csave">Save and use</button><button class="sec" id="cx">Close</button></div>
+</dialog>
+<dialog id="hdlg">
+  <h2>History</h2>
+  <div id="hl" class="lbl"></div>
+  <div class="acts" style="justify-content:flex-start"><button class="sec" id="hc">Clear history</button></div>
+  <div class="sep"></div>
+  <h2>Maintenance</h2>
+  <div class="row" style="justify-content:flex-start;align-items:center">
+    <label class="lbl" style="display:flex;align-items:center;gap:8px">Backflush every <input id="lim" type="number" inputmode="numeric" min="0" style="width:90px"> shots</label>
+    <button id="bf">Backflush done</button>
+  </div>
+  <div class="lbl" id="bfs" style="margin-top:8px"></div>
+  <div class="sep"></div>
+  <div class="lbl">Unofficial personal app. Not affiliated with La Marzocco or Bookoo.</div>
+  <div class="acts"><button class="sec" id="hx">Close</button></div>
+</dialog>
+
+<script>
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const sched=(k,f)=>{clearTimeout(sched[k]);sched[k]=setTimeout(f,5000)};
+const retriable=e=>!['NotFoundError','SecurityError','SyntaxError'].includes(e.name);
+const enc=new TextEncoder(),dec=new TextDecoder();
+const log=m=>{const l=$('log');l.textContent=new Date().toLocaleTimeString()+' '+m+'\n'+l.textContent.slice(0,3000)};
+const pill=(id,t,c)=>{const e=$(id);e.textContent=t;e.className='pill '+(c||'')};
+try{$('tok').value=localStorage.getItem('lmtok')||''}catch(e){}
+try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}
+
+// ---------- Micra ----------
+const SVC='d30a7847-e12b-09a8-b04b-8e0922a9abab';
+const U=p=>p+'0b7847-e12b-09a8-b04b-8e0922a9abab';
+let M={}, q=Promise.resolve(), mtimer=null;
+const run=f=>{const p=q.then(f);q=p.catch(()=>{});return p};
+const wr=(c,b)=>c.writeValueWithResponse?c.writeValueWithResponse(b):c.writeValue(b);
+const ask=name=>run(async()=>{
+  await wr(M.rd,enc.encode(name+'\0')); await sleep(150);
+  return dec.decode(await M.rd.readValue()).replace(/\0/g,'');
+});
+const cmd=o=>run(()=>wr(M.wr,enc.encode(JSON.stringify(o)+'\0')));
+
+async function micraConnect(pick){
+  try{
+    const tok=$('tok').value.trim();
+    if(!tok){askedTok=true;$('tdlg').showModal();return}
+    try{localStorage.setItem('lmtok',tok)}catch(e){}
+    if(pick||!M.dev){
+      M.dev=await navigator.bluetooth.requestDevice({
+        filters:[{namePrefix:'MICRA'},{namePrefix:'Micra'}],optionalServices:[SVC]});
+      M.dev.addEventListener('gattserverdisconnected',()=>{
+        pill('mst','disconnected','err');clearInterval(mtimer);setMicraUI(false);
+        sched('m',()=>micraConnect(false));
+      });
+    }
+    pill('mst','connecting…');
+    const srv=await M.dev.gatt.connect();
+    const s=await srv.getPrimaryService(SVC);
+    M.rd=await s.getCharacteristic(U('0a'));
+    M.wr=await s.getCharacteristic(U('0b'));
+    const au=await s.getCharacteristic(U('0d'));
+    await wr(au,enc.encode(tok)); // token en UTF-8 sin NUL
+    await refresh(true);
+    setMicraUI(true);
+    clearInterval(mtimer);mtimer=setInterval(()=>refresh(false),4000);
+  }catch(e){log('Machine: '+e.name+' '+e.message);pill('mst',retriable(e)?'retrying…':'error','err');if(M.dev&&retriable(e))sched('m',()=>micraConnect(false))}
+}
+let S={power:false,bt:0,bg:0,st:0,sg:0,se:true};
+async function refresh(first){
+  try{
+    const mode=JSON.parse(await ask('machineMode'));
+    const bo=JSON.parse(await ask('boilers'));
+    S.power=(mode==='BrewingMode');
+    for(const b of bo){
+      if(b.id==='CoffeeBoiler1'){S.bt=b.current;S.bg=b.target}
+      if(b.id==='SteamBoiler'){S.st=b.current;S.sg=b.target;S.se=b.isEnabled!==false}
+    }
+    render();pill('mst',S.power?'on':'standby','on');
+  }catch(e){
+    log('Machine read: '+e.message);
+    if(first){pill('mst','token rejected?','err');throw e}
+  }
+}
+const f1=n=>(Math.round(n*10)/10).toString().replace('.',',');
+function render(){
+  $('bt').textContent=f1(S.bt);$('bg').textContent=f1(S.bg);
+  $('st').textContent=Math.round(S.st);$('sg').textContent=Math.round(S.sg);
+  $('pw').textContent=S.power?'Set to standby':'Power on';
+  $('se').textContent='Steam: '+(S.se?'yes':'no');
+}
+function setMicraUI(on){['pw','bm','bp','sm','sp','se'].forEach(i=>$(i).disabled=!on);$('mc').style.display=on?'none':''}
+$('mc').onclick=()=>micraConnect(true);
+$('pw').onclick=async()=>{S.power=!S.power;render();
+  await cmd({name:'MachineChangeMode',parameter:{mode:S.power?'BrewingMode':'StandBy'}}).catch(e=>log(e.message))};
+const setBoiler=async(id,v)=>cmd({name:'SettingBoilerTarget',parameter:{identifier:id,value:v}}).catch(e=>log(e.message));
+let tb;
+$('bm').onclick=$('bp').onclick=e=>{S.bg=Math.round((S.bg+(e.target.id==='bp'?0.5:-0.5))*10)/10;render();
+  clearTimeout(tb);tb=setTimeout(()=>setBoiler('CoffeeBoiler1',S.bg),600)};
+let ts;
+$('sm').onclick=$('sp').onclick=e=>{S.sg=Math.round(S.sg)+(e.target.id==='sp'?1:-1);render();
+  clearTimeout(ts);ts=setTimeout(()=>setBoiler('SteamBoiler',S.sg),600)};
+$('se').onclick=async()=>{S.se=!S.se;render();
+  await cmd({name:'SettingBoilerEnable',parameter:{identifier:'SteamBoiler',state:S.se}}).catch(e=>log(e.message))};
+
+// ---------- Báscula Bookoo Themis Mini ----------
+let D={}, pts=[], t0=null;
+async function scaleConnect(pick){
+  try{
+    if(pick||!D.dev){
+      D.dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:[0x0ffe]});
+      D.dev.addEventListener('gattserverdisconnected',()=>{
+        pill('sst','disconnected','err');$('tare').disabled=true;$('sc').style.display='';
+        sched('s',()=>scaleConnect(false));
+      });
+    }
+    pill('sst','connecting…');
+    const srv=await D.dev.gatt.connect();
+    const s=await srv.getPrimaryService(0x0ffe);
+    D.nt=await s.getCharacteristic(0xff11);
+    D.wr=await s.getCharacteristic(0xff12);
+    D.nt.addEventListener('characteristicvaluechanged',e=>onW(e.target.value));
+    await D.nt.startNotifications();
+    pill('sst','connected','on');$('tare').disabled=false;$('sc').style.display='none';
+  }catch(e){log('Scale: '+e.name+' '+e.message);pill('sst',retriable(e)?'retrying…':'error','err');if(D.dev&&retriable(e))sched('s',()=>scaleConnect(false))}
+}
+function onW(v){
+  if(v.byteLength<20)return;
+  const ms=(v.getUint8(2)<<16)|(v.getUint8(3)<<8)|v.getUint8(4);
+  const sign=v.getUint8(6)===0x2d?-1:1;
+  const w=sign*((v.getUint8(7)<<16)|(v.getUint8(8)<<8)|v.getUint8(9))/100;
+  $('bat').textContent='battery '+v.getUint8(13)+' %';
+  const now=performance.now();
+  if(t0===null)t0=now;
+  pts.push({t:(now-t0)/1000,w});
+  while(pts.length>1&&pts[pts.length-1].t-pts[0].t>300)pts.shift();
+  // flujo: variación de peso en ~1 s
+  let j=pts.length-1;while(j>0&&pts[pts.length-1].t-pts[j].t<1)j--;
+  const dt=pts[pts.length-1].t-pts[j].t,fl=dt>0.3?(w-pts[j].w)/dt:0;
+  pts[pts.length-1].f=fl;
+  $('w').textContent=w.toFixed(1).replace('.',',');
+  $('fl').textContent=fl.toFixed(1).replace('.',',');
+  shot(pts[pts.length-1].t,w,fl);
+  draw();
+}
+
+// ---------- Cronómetro, dosis y ratio ----------
+const sh={st:'idle',base:null,riseT:null,t0:0,last:0,dur:0,final:0};
+try{$('dose').value=localStorage.getItem('lmdose')||'18'}catch(e){$('dose').value='18'}
+$('dose').oninput=()=>{try{localStorage.setItem('lmdose',$('dose').value)}catch(e){}};
+try{$('tgt').value=localStorage.getItem('lmtgt')||''}catch(e){}
+$('tgt').oninput=()=>{try{localStorage.setItem('lmtgt',$('tgt').value)}catch(e){}};
+let AC=null;
+const unlock=()=>{try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();AC.resume()}catch(e){}};
+document.addEventListener('pointerdown',unlock);
+function beep(){
+  try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+  if(!AC)return;
+  [0,0.3,0.6].forEach(d=>{const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=880;g.gain.value=0.3;
+    o.connect(g);g.connect(AC.destination);o.start(AC.currentTime+d);o.stop(AC.currentTime+d+0.2)});
+}
+const n1=x=>x.toFixed(1).replace('.',',');
+function shot(t,w,fl){
+  const prev=pts.length>1?pts[pts.length-2].w:w;
+  if(sh.st==='idle'){
+    if(sh.base===null||Math.abs(w-sh.base)>8||w-prev>6){sh.base=w;sh.riseT=null}  // taza puesta o quitada
+    if(w<sh.base+0.3){sh.base=w;sh.riseT=null}
+    else{
+      if(sh.riseT===null)sh.riseT=t;
+      if(w-sh.base>=1.5&&fl>=0.4){sh.st='run';sh.t0=sh.riseT;sh.last=t}
+    }
+  }else if(sh.st==='run'){
+    if(fl>=0.3)sh.last=t;
+    if((t-sh.last>=2.5&&t-sh.t0>5)||t-sh.t0>120){
+      sh.st='done';sh.dur=sh.last-sh.t0;sh.final=w;sh.settle=t+3;saveShot(sh.dur,w);
+    }
+  }else{
+    if(t<sh.settle&&w>=sh.final-1){sh.final=w;fixLast(w)}   // las últimas gotas también cuentan
+    if(w<sh.final-5){sh.st='idle';sh.base=null}              // taza retirada
+  }
+  const tg=parseFloat(String($('tgt').value).replace(',','.'));
+  const hit=sh.st!=='idle'&&tg>0&&w>=tg;
+  if(sh.st==='run'&&hit&&!sh.warned){sh.warned=true;beep()}
+  if(sh.st==='idle')sh.warned=false;
+  $('w').style.color=hit?'var(--ok)':'';
+  const y=sh.st==="done"?sh.final:w;
+  const dur=sh.st==='run'?t-sh.t0:sh.st==='done'?sh.dur:null;
+  $('tm').textContent=dur===null?'--':n1(dur)+' s';
+  $('shs').textContent=sh.st==='run'?'brewing…':sh.st==='done'?(advTxt||'shot done'):'waiting';
+  const dose=parseFloat(String($('dose').value).replace(',','.'));
+  $('rt').textContent=(sh.st!=='idle'&&dose>0)?'1 : '+n1(y/dose):'--';
+}
+function loadH(){try{return JSON.parse(localStorage.getItem('lmhist')||'[]')}catch(e){return[]}}
+function saveShot(dur,y){
+  const dose=parseFloat(String($('dose').value).replace(',','.'))||0;
+  const c=cur(),h=loadH();h.unshift({d:Date.now(),dose,y,dur,c:c?c.n:'',cs:c?c.s:'',ci:c?c.id:'',tn:normT(c,dose,y,dur)});
+  try{localStorage.setItem('lmhist',JSON.stringify(h.slice(0,50)))}catch(e){}
+  try{localStorage.setItem('lmcount',cnt()+1)}catch(e){}
+  advise(c,h);
+  if(c&&dose>0){c.left=Math.max(0,(c.left||0)-dose);put('lmcof',cofs);showC()}
+  showH();showM();
+}
+function fixLast(y){const h=loadH();if(h.length){h[0].y=y;const c=cur();h[0].tn=normT(c,h[0].dose,y,h[0].dur);try{localStorage.setItem('lmhist',JSON.stringify(h))}catch(e){}advise(c,h);showH()}}
+function showH(){
+  const h=loadH();
+  $('hl').innerHTML=h.length?h.map(s=>{
+    const d=new Date(s.d);
+    return d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+
+      (s.c?' · '+esc(s.c)+(s.cs?' '+esc(s.cs):''):'')+' · '+n1(s.dose)+' g → '+n1(s.y)+' g · 1 : '+(s.dose>0?n1(s.y/s.dose):'--')+' · '+n1(s.dur)+' s';
+  }).join('<br>'):'No shots yet.';
+}
+$('hc').onclick=()=>{if(confirm('Clear the history?')){try{localStorage.removeItem('lmhist')}catch(e){}showH()}};
+showH();
+// ---------- Maintenance: aviso de retrolavado ----------
+function cnt(){try{return parseInt(localStorage.getItem('lmcount')||'0')||0}catch(e){return 0}}
+function showM(){
+  const n=cnt(),l=parseInt($('lim').value)||0;let last=null;
+  try{last=localStorage.getItem('lmlast')}catch(e){}
+  $('bfs').textContent=n+' shots since last backflush'+(last?' ('+new Date(+last).toLocaleDateString('en-GB')+')':'');
+  const due=l>0&&n>=l;
+  $('ban').style.display=due?'block':'none';
+  $('ban').textContent='Backflush due: '+n+' shots since the last backflush.';
+}
+try{$('lim').value=localStorage.getItem('lmlim')||''}catch(e){}
+$('lim').oninput=()=>{try{localStorage.setItem('lmlim',$('lim').value)}catch(e){}showM()};
+$('bf').onclick=()=>{if(confirm('Confirm that the backflush is done?')){
+  try{localStorage.setItem('lmcount','0');localStorage.setItem('lmlast',String(Date.now()))}catch(e){}showM()}};
+showM();
+// ---------- Coffees ----------
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function rd(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
+function put(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+let cofs=rd('lmcof')||[],curId=rd('lmcur'),edId=null;
+let advTxt='',lastAdv=null;
+const cur=()=>cofs.find(c=>c.id===curId)||null;
+const fnum=x=>parseFloat(String(x).replace(',','.'));
+const stepOf=c=>c.st>0?c.st:(/x ?(54|64)|mahlk/i.test(c.g||'')?0.2:1);
+const fmtN=(x,st)=>(st<1?x.toFixed(1):String(Math.round(x))).replace('.',',');
+const fd=n=>n.toFixed(1).replace('.',',');
+function normT(c,dose,y,dur){const r=c&&c.rt;return(r>0&&y>5&&dose>0)?dur*r*dose/y:dur}
+// Sugerencia de molienda: time normalizado a la ratio target frente al time target.
+// Ambos molinos: número mayor = más grueso. La sensibilidad se aprende del historial del mismo café.
+function advise(c,h){
+  advTxt='';lastAdv=null;
+  if(!c||!(c.tt>0)||!h.length||!(h[0].tn>0))return;
+  const tn=h[0].tn,tt=c.tt,e=(tn-tt)/tt,step=stepOf(c),sn=fnum(c.s);
+  if(Math.abs(e)<=0.08){advTxt='On target: '+fd(tn)+' s (target '+fd(tt)+' s). Keep the setting.';return}
+  const p=h.filter(x=>x.ci===c.id&&x.tn>0&&!isNaN(fnum(x.cs))).slice(0,12),ss=[];
+  for(let i=0;i+1<p.length;i++){const a=fnum(p[i].cs),b=fnum(p[i+1].cs);
+    if(Math.abs(a-b)>=step*0.5){const k=(p[i].tn-p[i+1].tn)/(a-b);if(k<0)ss.push(k)}}
+  ss.sort((a,b)=>a-b);const k=ss.length?ss[Math.floor(ss.length/2)]:null;
+  let d=k?(tt-tn)/k:Math.sign(e)*step*(Math.abs(e)<.15?1:Math.abs(e)<.3?2:3);
+  d=Math.max(-3*step,Math.min(3*step,d));d=Math.round(d/step)*step;if(d===0)d=Math.sign(e)*step;
+  let t=(e>0?'Slow':'Fast')+' ('+fd(tn)+' s, target '+fd(tt)+' s): try '+(d>0?'coarser':'finer')+' ('+(d>0?'+':'−')+fmtN(Math.abs(d),step)+')';
+  if(!isNaN(sn)){const ns=fmtN(sn+d,step);t+=' → '+ns;lastAdv={id:c.id,ns}}
+  advTxt=t+(k?'':' · initial estimate');
+}
+const num=i=>{const v=parseFloat(String($(i).value).replace(',','.'));return isNaN(v)?null:v};
+function showC(){
+  const c=cur();
+  $('cofb').textContent=c?'Coffee: '+c.n+(c.s?' · '+c.s:'')+(c.dose>0&&c.left!=null?' · left '+Math.floor(c.left/c.dose):''):'Coffee: choose';
+  $('cl').innerHTML=cofs.length?cofs.map(x=>'<button class="sec" data-id="'+x.id+'">'+(x.id===curId?'● ':'')+esc(x.n)+(x.r?' · '+esc(x.r):'')+(x.s?' · '+esc(x.s):'')+' · '+Math.floor(x.left||0)+' g</button>').join(''):'No coffees yet. Fill in the form and tap Save and use.';
+  $('mol').innerHTML=[...new Set(cofs.map(x=>x.g).filter(Boolean))].map(g=>'<option value="'+esc(g)+'">').join('');
+  $('capply').style.display=(lastAdv&&lastAdv.id===curId)?'':'none';if(lastAdv)$('capply').textContent='Apply setting '+lastAdv.ns;
+}
+function fillC(c){edId=c?c.id:null;const v=(i,x)=>{$(i).value=x==null?'':x};
+  v('cn',c&&c.n);v('cr',c&&c.r);v('cno',c&&c.no);v('cg',c&&c.g);v('cs',c&&c.s);v('cd',c&&c.dose);v('cb2',c&&c.bag);v('cq',c&&c.left);v('cf',c&&c.rec);v('ct',c?c.tt:30);v('crt',c?c.rt:2);v('cst',c&&c.st)}
+function useC(id){curId=id;put('lmcur',id);const c=cur();
+  if(c&&c.dose>0){$('dose').value=c.dose;try{localStorage.setItem('lmdose',c.dose)}catch(e){}}showC()}
+$('cofb').onclick=()=>{fillC(cur());showC();$('cdlg').showModal()};
+$('cx').onclick=()=>$('cdlg').close();
+$('capply').onclick=()=>{const c=cur();if(!c||!lastAdv||lastAdv.id!==c.id)return;c.s=lastAdv.ns;put('lmcof',cofs);lastAdv=null;fillC(c);showC()};
+$('cnew').onclick=()=>fillC(null);
+$('cl').onclick=e=>{const b=e.target.closest('button');if(!b)return;const c=cofs.find(x=>x.id===b.dataset.id);if(c){useC(c.id);fillC(c)}};
+$('csave').onclick=()=>{
+  const n=$('cn').value.trim();if(!n){$('cn').focus();return}
+  const bag=num('cb2'),o={id:edId||'c'+Date.now(),n,r:$('cr').value.trim(),no:$('cno').value.trim(),g:$('cg').value.trim(),s:$('cs').value.trim(),
+    dose:num('cd'),bag,left:num('cq')==null?bag:num('cq'),rec:$('cf').value,tt:num('ct'),rt:num('crt'),st:num('cst')};
+  const i=cofs.findIndex(x=>x.id===o.id);if(i>=0)cofs[i]=o;else cofs.push(o);
+  put('lmcof',cofs);useC(o.id);fillC(o);$('cdlg').close()};
+$('cdel').onclick=()=>{if(!edId||!confirm('Delete this coffee?'))return;
+  cofs=cofs.filter(x=>x.id!==edId);if(curId===edId){curId=null;put('lmcur',null)}put('lmcof',cofs);fillC(null);showC()};
+showC();
+// ---------- Tamaño de pantalla (diagnóstico) ----------
+const scr=()=>{$('scr').textContent='Screen: '+innerWidth+' × '+innerHeight+' px CSS · density '+devicePixelRatio.toFixed(2).replace('.',',')+'×'};
+addEventListener('resize',scr);scr();
+// ---------- Ventanas emergentes ----------
+let askedTok=false;
+$('tb').onclick=()=>$('tdlg').showModal();
+$('tcan').onclick=()=>{askedTok=false;$('tdlg').close()};
+$('tsave').onclick=()=>{try{localStorage.setItem('lmtok',$('tok').value.trim())}catch(e){}
+  $('tdlg').close();if(askedTok&&$('tok').value.trim()){askedTok=false;micraConnect(true)}};
+$('tshow').onclick=()=>{const t=$('tok');t.type=t.type==='password'?'text':'password';$('tshow').textContent=t.type==='password'?'Show':'Hide'};
+$('hb').onclick=()=>{showH();showM();$('hdlg').showModal()};
+$('hx').onclick=()=>$('hdlg').close();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+$('sc').onclick=()=>scaleConnect(true);
+$('tare').onclick=()=>{sh.st='idle';sh.base=null;sh.riseT=null;D.wr&&wr(D.wr,new Uint8Array([0x03,0x0a,0x01,0x00,0x00,0x08])).catch(e=>log(e.message))};
+$('rst').onclick=()=>{pts=[];t0=null;sh.st='idle';sh.base=null;sh.riseT=null;draw()};
+let raf=0;
+function draw(){
+  if(raf)return;
+  raf=requestAnimationFrame(()=>{raf=0;
+    const c=$('cv'),x=c.getContext('2d'),W=c.width,H=c.height;
+    x.clearRect(0,0,W,H);if(pts.length<2)return;
+    const tn=pts[pts.length-1].t;
+    let a,b;
+    if(sh.st==='idle'){a=tn-30;b=tn}
+    else{a=sh.t0-2;b=sh.st==='run'?Math.max(tn,sh.t0+20):sh.last+3}
+    const v=pts.filter(p=>p.t>=a&&p.t<=b);if(v.length<2)return;
+    let lo=Math.min(...v.map(p=>p.w)),hi=Math.max(...v.map(p=>p.w));
+    if(sh.st!=='idle')lo=Math.min(lo,0);
+    const span=Math.max(hi-lo,sh.st==='idle'?10:40),mid=(hi+lo)/2;
+    if(sh.st==='idle'){lo=mid-span*0.55;hi=mid+span*0.55}else hi=lo+span*1.1;
+    const X=t=>(t-a)/(b-a)*W,Y=(val,l,h)=>H-(val-l)/(h-l)*H;
+    const line=(key,l,h,col)=>{x.beginPath();x.strokeStyle=col;x.lineWidth=4;
+      v.forEach((p,k)=>{const px=X(p.t),py=Y(p[key]||0,l,h);k?x.lineTo(px,py):x.moveTo(px,py)});x.stroke()};
+    const fm=Math.max(4,...v.map(p=>p.f||0))*1.1;
+    line('w',lo,hi,'#f5f5f5');line('f',0,fm,'#22c022');
+    x.fillStyle='#22c022';x.font='26px system-ui';x.fillText(fm.toFixed(0)+' g/s',W-150,32);
+    x.fillStyle='#a3a3a3';x.font='26px system-ui';
+    x.fillText(hi.toFixed(0)+' g',10,32);x.fillText(lo.toFixed(0)+' g',10,H-10);
+    x.fillText(sh.st==='idle'?'last 30 s':(b-a).toFixed(0)+' s',W-110,H-10);
+  });
+}
+if(!navigator.bluetooth){log('This browser does not support Web Bluetooth. Use Chrome on Android over HTTPS.');}
+</script>
+</body>
+</html>
